@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
@@ -16,9 +17,11 @@
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.10.1",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "task-management": "file:"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"
-  }
+  },
+  "type": "commonjs"
 }
