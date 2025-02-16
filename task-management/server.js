@@ -13,7 +13,8 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-app.use('/tasks', taskRouter);
+app.use(taskRouter);
+
 
 app.get('/', (req, res) => {
     res.send('Welcome to the Task Management API');
