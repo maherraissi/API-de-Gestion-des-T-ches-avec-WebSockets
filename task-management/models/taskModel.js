@@ -12,3 +12,7 @@ const taskSchema = new mangoose.Schema({
   createdAt : {type : Date, default : Date.now},
   completedAt : {type : Date, default : null}
 });
+
+
+//create a model from the schema
+module.exports = mangoose.model('Task', taskSchema);
