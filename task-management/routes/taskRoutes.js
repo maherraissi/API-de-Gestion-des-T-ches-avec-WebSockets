@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const taskController = require('./taskController');
+const taskController = require('../controllers/taskController');  // Import the task controller
 
 // Create a new task
-router.post('/tasks', taskController.createTask);
+router.post('/', taskController.createTask);
 
 // Get all tasks
 router.get('/tasks', taskController.getAllTasks);
