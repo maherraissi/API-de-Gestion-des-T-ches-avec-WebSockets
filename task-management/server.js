@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 require('./config/db');
+const authRoutes = require('./routes/authRoutes');
 
 const taskRouter = require('./routes/taskRoutes');
 
@@ -16,7 +17,11 @@ const io = socketIo(server, {
 
 const PORT = process.env.PORT || 3000;
 
+app.use('/api/auth', authRoutes);
+
 app.use(express.json());
+const userRouter = require('./routes/userRoutes');
+app.use(userRouter);
 
 // Attach io to the request object (so it can be used in controllers)
 app.use((req, res, next) => {

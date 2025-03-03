@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const taskController = require('../controllers/taskController');  // Import the task controller
+const { authenticate, authorize } = require('../middlewares/authMiddleware');
 
 // Create a new task
 router.post('/', taskController.createTask);

@@ -1,36 +1,38 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/userModel');  // Adjust path based on your project structure
+const User = require('../models/userModel');  // Vérifie le chemin selon ton projet
+require('dotenv').config();  // Charger les variables d'environnement
 
-// Authentication Middleware
+// Middleware d'authentification
 const authenticate = (req, res, next) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');  // Extract token from header
-
-  if (!token) {
-    return res.status(401).json({ message: 'No token provided, authorization denied' });
-  }
-
   try {
-    // Verify the token
-    const decoded = jwt.verify(token, 'your_jwt_secret');  // Use the same secret key that was used to sign the token
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ message: 'Accès refusé : Aucun token fourni' });
+    }
 
-    // Attach the decoded user info to the request object (so it's available for route handlers)
+    // Vérification du token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;  // { userId, role, ... }
-
-    next();  // Proceed to the next middleware or route handler
+    
+    next(); // Passer au prochain middleware ou contrôleur
   } catch (error) {
-    console.error(error);
-    res.status(401).json({ message: 'Invalid or expired token' });
+    console.error('Erreur d’authentification:', error);
+    res.status(401).json({ message: 'Token invalide ou expiré' });
   }
 };
 
-// Authorization Middleware (to check user roles)
+// Middleware d’autorisation (vérification des rôles)
 const authorize = (roles = []) => {
   return (req, res, next) => {
-    // If no roles are provided, authorize all users
-    if (roles.length && !roles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Access forbidden: Insufficient role' });
+    if (!req.user || !req.user.role) {
+      return res.status(403).json({ message: 'Accès refusé : Rôle non défini' });
     }
-    next();  // Proceed to the next middleware or route handler
+
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Accès interdit : Rôle insuffisant' });
+    }
+
+    next();
   };
 };
 
