@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Task Manager</title>
+    <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>WebSocket Task Manager</h1>
+    <ul id="taskList"></ul>
+
+    <script>
+        const socket = io('http://localhost:3000');  // Connect to your backend
+
+        socket.on('taskCreated', (task) => {
+            console.log('New Task Created:', task);
+            updateTaskList(task, 'created');
+        });
+
+        socket.on('taskUpdated', (task) => {
+            console.log('Task Updated:', task);
+            updateTaskList(task, 'updated');
+        });
+
+        socket.on('taskDeleted', (task) => {
+            console.log('Task Deleted:', task);
+            updateTaskList(task, 'deleted');
+        });
+
+        function updateTaskList(task, action) {
+            const taskList = document.getElementById('taskList');
+            const listItem = document.createElement('li');
+            listItem.innerText = `Task: ${task.title} | Status: ${task.status} | Action: ${action}`;
+            taskList.appendChild(listItem);
+        }
+    </script>
+</body>
+</html>
