@@ -17,7 +17,7 @@ Ce projet est une API Node.js permettant la gestion des tâches en temps réel g
 ### Étapes
 1. Cloner le dépôt :
    ```sh
-   git clone https://github.com/jilanigh/API-de-Gestion-des-T-ches-avec-WebSockets.git
+   git clone https://github.com/maherraissi/API-de-Gestion-des-T-ches-avec-WebSockets.git
    ```
 2. Se déplacer dans le dossier du projet :
    ```sh
