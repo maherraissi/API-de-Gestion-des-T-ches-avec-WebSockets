@@ -5,6 +5,7 @@ require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 
 const taskRouter = require('./routes/taskRoutes');
+const router = require('./routes/userRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -29,20 +30,29 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(taskRouter);
+app.use('/tasks', taskRouter);
 
+
+// Base Route
 app.get('/', (req, res) => {
-    res.send('Welcome to the Task Management API with WebSockets');
+    res.send('Welcome to the Task Management API');
 });
 
+app.use('/api', router);
+
+//app.use('/api', router);
+
+// WebSocket Connection
 io.on('connection', (socket) => {
     console.log('New client connected');
-
+    
+    // Emit event when a client disconnects
     socket.on('disconnect', () => {
         console.log('Client disconnected');
     });
 });
 
+// Start Server
 server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
