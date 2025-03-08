@@ -3,7 +3,7 @@ const router = express.Router();
 const userController = require('../controllers/userController');  // Import user controller
 const { authenticate, authorize } = require('../middlewares/authMiddleware');  // Import middleware
 
-// Public Routes
+// Only for Public Routes
 router.post('/register', userController.register); // Anyone can register
 router.post('/login', userController.login);       // Anyone can log in
 
