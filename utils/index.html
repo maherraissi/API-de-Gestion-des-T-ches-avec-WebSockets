@@ -5,35 +5,142 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebSocket Task Manager</title>
     <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+        input, textarea, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        button:hover {
+            background: #218838;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin-top: 20px;
+        }
+        li {
+            background: white;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
 </head>
 <body>
     <h1>WebSocket Task Manager</h1>
+    
+    <div class="container">
+        <h2>Créer une Tâche</h2>
+        <form id="taskForm">
+            <label for="title">Titre</label>
+            <input type="text" id="title" required>
+
+            <label for="description">Description</label>
+            <textarea id="description" required></textarea>
+
+            <label for="assignedTo">Assigné à (ID utilisateur)</label>
+            <input type="text" id="assignedTo">
+
+            <label for="status">Statut</label>
+            <select id="status">
+                <option value="pending">En attente</option>
+                <option value="assigned">Assignée</option>
+                <option value="accepted">Acceptée</option>
+                <option value="rejected">Rejetée</option>
+                <option value="finished">Terminée</option>
+            </select>
+
+            <button type="submit">Créer la Tâche</button>
+        </form>
+    </div>
+
     <ul id="taskList"></ul>
 
     <script>
-        const socket = io('http://localhost:3000');  // Connect to your backend
-
+        const socket = io('http://localhost:3000');
+    
+        document.getElementById("taskForm").addEventListener("submit", async function(event) {
+            event.preventDefault();
+    
+            const task = {
+                title: document.getElementById("title").value,
+                description: document.getElementById("description").value,
+                assignedTo: document.getElementById("assignedTo").value || null,
+                status: document.getElementById("status").value
+            };
+    
+            // 🔥 Envoyer la tâche à MongoDB via l'API
+            const response = await fetch('http://localhost:3000/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(task)
+            });
+    
+            const newTask = await response.json();
+            socket.emit('createTask', newTask);
+    
+            alert("Tâche créée avec succès !");
+            this.reset();
+        });
+    
+        // 🔥 Récupérer toutes les tâches depuis MongoDB
+        async function loadTasks() {
+            const response = await fetch('http://localhost:3000/tasks');
+            const tasks = await response.json();
+            tasks.forEach(task => updateTaskList(task, 'loaded'));
+        }
+    
         socket.on('taskCreated', (task) => {
-            console.log('New Task Created:', task);
+            console.log('Nouvelle tâche reçue:', task);
             updateTaskList(task, 'created');
         });
-
-        socket.on('taskUpdated', (task) => {
-            console.log('Task Updated:', task);
-            updateTaskList(task, 'updated');
-        });
-
-        socket.on('taskDeleted', (task) => {
-            console.log('Task Deleted:', task);
-            updateTaskList(task, 'deleted');
-        });
-
+    
         function updateTaskList(task, action) {
             const taskList = document.getElementById('taskList');
             const listItem = document.createElement('li');
             listItem.innerText = `Task: ${task.title} | Status: ${task.status} | Action: ${action}`;
             taskList.appendChild(listItem);
         }
+    
+        // Charger les tâches existantes au démarrage
+        loadTasks();
     </script>
+    
+
 </body>
 </html>
