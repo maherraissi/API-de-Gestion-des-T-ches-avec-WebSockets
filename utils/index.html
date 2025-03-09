@@ -187,6 +187,41 @@
         </div>
     </div>
 
+    <div id="editTaskModal" class="modal">
+        <div class="modal-content">
+            <h2>Edit Task</h2>
+            <form id="editTaskForm">
+                <input type="hidden" id="editTaskId">
+                <div class="form-group">
+                    <label for="editTitle">Title</label>
+                    <input type="text" id="editTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="editDescription">Description</label>
+                    <textarea id="editDescription" rows="4" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editAssignedTo">Assign To</label>
+                    <select id="editAssignedTo">
+                        <option value="">Select User</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editStatus">Status</label>
+                    <select id="editStatus" required>
+                        <option value="pending">Pending</option>
+                        <option value="assigned">Assigned</option>
+                        <option value="accepted">Accepted</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="finished">Finished</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Update Task</button>
+                <button type="button" onclick="hideEditModal()" class="btn btn-danger">Cancel</button>
+            </form>
+        </div>
+    </div>
+
     <script>
         const socket = io('http://localhost:3000', {
             auth: { token: localStorage.getItem('token') }
@@ -215,7 +250,7 @@
             setTimeout(() => msgDiv.remove(), 3000);
         }
 
-        async function loadUsers() {
+        async function loadUsers(selectId = 'assignedTo') {
             try {
                 const response = await fetch('http://localhost:3000/api/users', {
                     headers: {
@@ -223,7 +258,7 @@
                     }
                 });
                 const users = await response.json();
-                const select = document.getElementById('assignedTo');
+                const select = document.getElementById(selectId);
                 select.innerHTML = '<option value="">Select User</option>';
                 users.forEach(user => {
                     const option = document.createElement('option');
@@ -282,32 +317,87 @@
             });
         }
 
+        let userRole = ''; // Pour stocker le rôle de l'utilisateur
+
+        async function checkUserRole() {
+            try {
+                const response = await fetch('http://localhost:3000/api/users/me', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to fetch user role');
+                }
+                const data = await response.json();
+                userRole = data.role;
+                console.log('User role:', userRole);
+                
+                // Cacher/Montrer le bouton de création selon le rôle
+                const createButton = document.querySelector('button[onclick="showTaskModal()"]');
+                if (createButton) {
+                    createButton.style.display = userRole === 'admin' ? 'block' : 'none';
+                }
+                
+                return userRole;
+            } catch (error) {
+                console.error('Error checking user role:', error);
+                return null;
+            }
+        }
+
+        function showEditModal(task) {
+            document.getElementById('editTaskModal').style.display = 'block';
+            document.getElementById('editTaskId').value = task._id;
+            document.getElementById('editTitle').value = task.title;
+            document.getElementById('editDescription').value = task.description;
+            document.getElementById('editStatus').value = task.status;
+            document.getElementById('editAssignedTo').value = task.assignedTo ? task.assignedTo._id : '';
+            loadUsers('editAssignedTo');
+        }
+
+        function hideEditModal() {
+            document.getElementById('editTaskModal').style.display = 'none';
+        }
+
         function updateTaskGrid(tasks) {
-    const grid = document.getElementById('taskGrid');
-    grid.innerHTML = '';
-    tasks.forEach(task => {
-        const card = document.createElement('div');
-        card.className = 'task-card';
-        const assignedToText = task.assignedTo && task.assignedTo.username 
-            ? task.assignedTo.username 
-            : (task.assignedTo 
-                ? 'User not found' 
-                : 'Unassigned');
-        card.innerHTML = `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
-                <h3>${task.title}</h3>
-                <span class="status-badge status-${task.status}">${task.status}</span>
-            </div>
-            <p>${task.description}</p>
-            <p><strong>Assigned to:</strong> ${assignedToText}</p>
-            <p><strong>Created:</strong> ${new Date(task.createdAt).toLocaleDateString()}</p>
-            <div style="margin-top: 1rem;">
-                <button onclick="deleteTask('${task._id}')" class="btn btn-danger">Delete</button>
-            </div>
-        `;
-        grid.appendChild(card);
-    });
-}
+            const grid = document.getElementById('taskGrid');
+            grid.innerHTML = '';
+            console.log('Current user role:', userRole); // Pour déboguer
+
+            tasks.forEach(task => {
+                const card = document.createElement('div');
+                card.className = 'task-card';
+                const assignedToText = task.assignedTo && task.assignedTo.username 
+                    ? task.assignedTo.username 
+                    : (task.assignedTo 
+                        ? 'User not found' 
+                        : 'Unassigned');
+
+                // Modification ici pour forcer l'affichage des boutons en mode debug
+                const isAdmin = userRole === 'admin' || userRole === 'ADMIN';
+                console.log('Is admin?', isAdmin); // Debug
+
+                const adminButtons = isAdmin ? `
+                    <button onclick="showEditModal(${JSON.stringify(task)})" class="btn btn-primary">Edit</button>
+                    <button onclick="deleteTask('${task._id}')" class="btn btn-danger">Delete</button>
+                ` : '';
+
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <h3>${task.title}</h3>
+                        <span class="status-badge status-${task.status}">${task.status}</span>
+                    </div>
+                    <p>${task.description}</p>
+                    <p><strong>Assigned to:</strong> ${assignedToText}</p>
+                    <p><strong>Created:</strong> ${new Date(task.createdAt).toLocaleDateString()}</p>
+                    <div style="margin-top: 1rem;">
+                        ${adminButtons}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
 
         document.getElementById('taskForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -326,18 +416,48 @@
                     })
                 });
 
-        if (response.ok) {
-            const result = await response.json();
-            showMessage('Task created successfully', 'success');
-            hideTaskModal();
-            loadTasks();
-        } else {
-            throw new Error('Failed to create task');
-        }
-    } catch (error) {
-        showMessage(error.message, 'error');
-    }
-});
+                if (response.ok) {
+                    const result = await response.json();
+                    showMessage('Task created successfully', 'success');
+                    hideTaskModal();
+                    loadTasks();
+                } else {
+                    throw new Error('Failed to create task');
+                }
+            } catch (error) {
+                showMessage(error.message, 'error');
+            }
+        });
+
+        document.getElementById('editTaskForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const taskId = document.getElementById('editTaskId').value;
+            try {
+                const response = await fetch(`http://localhost:3000/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        title: document.getElementById('editTitle').value,
+                        description: document.getElementById('editDescription').value,
+                        assignedTo: document.getElementById('editAssignedTo').value || null,
+                        status: document.getElementById('editStatus').value
+                    })
+                });
+
+                if (response.ok) {
+                    showMessage('Task updated successfully', 'success');
+                    hideEditModal();
+                    loadTasks();
+                } else {
+                    throw new Error('Failed to update task');
+                }
+            } catch (error) {
+                showMessage(error.message, 'error');
+            }
+        });
 
         async function deleteTask(taskId) {
             if (!confirm('Are you sure you want to delete this task?')) return;
@@ -374,7 +494,19 @@
         if (!localStorage.getItem('token')) {
             window.location.href = 'login.html';
         } else {
-            loadTasks();
+            async function init() {
+                try {
+                    const role = await checkUserRole();
+                    if (!role) {
+                        throw new Error('Failed to get user role');
+                    }
+                    await loadTasks();
+                } catch (error) {
+                    console.error('Initialization error:', error);
+                    window.location.href = 'login.html';
+                }
+            }
+            init();
         }
 
         // WebSocket event listeners

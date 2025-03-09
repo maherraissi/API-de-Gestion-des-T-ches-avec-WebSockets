@@ -164,11 +164,37 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const getCurrentUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Log pour déboguer
+    console.log('User found:', {
+        id: user._id,
+        role: user.role,
+        username: user.username
+    });
+
+    res.status(200).json({
+        id: user._id,
+        role: user.role,
+        username: user.username
+    });
+  } catch (error) {
+    console.error('Error in getCurrentUser:', error);
+    res.status(500).json({ message: 'Error fetching user details' });
+  }
+};
+
 module.exports = {
   register,
   login,
   getAllUsers,
   getUserById,
   updateUser,
-  deleteUser
+  deleteUser,
+  getCurrentUser
 };
