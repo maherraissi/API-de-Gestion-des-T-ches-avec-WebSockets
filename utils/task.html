@@ -1,4 +1,3 @@
-avec-WebSockets\task-management\utils\index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -74,6 +73,7 @@ avec-WebSockets\task-management\utils\index.html -->
 <body>
     <div class="login-container">
         <div class="logo">
+            <!-- Add your logo here if you have one -->
             <h1>Task Management System</h1>
         </div>
         
@@ -94,8 +94,8 @@ avec-WebSockets\task-management\utils\index.html -->
         // Check if user is already logged in
         const authToken = localStorage.getItem('authToken');
         if (authToken) {
-            // Redirect to task page if already logged in
-            window.location.href = 'task.html';
+            // Redirect to dashboard if already logged in
+            window.location.href = 'dashboard.html';
         }
         
         document.getElementById('loginForm').addEventListener('submit', async (event) => {
@@ -104,9 +104,6 @@ avec-WebSockets\task-management\utils\index.html -->
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const loginAlert = document.getElementById('loginAlert');
-            
-            // Show loading message
-            showAlert('loginAlert', 'Logging in...', 'success');
             
             try {
                 const response = await fetch('http://localhost:3000/api/login', {
@@ -120,31 +117,17 @@ avec-WebSockets\task-management\utils\index.html -->
                 const data = await response.json();
                 console.log("Login response:", data);
                 
-                // Find the token (check all possible locations)
-                // 1. Direct token property
-                // 2. Inside user object
-                // 3. Inside user.token
-                // 4. Inside data.user property
-                const token = data.token || 
-                             (data.user && data.user.token) || 
-                             (data.user && typeof data.user === 'string' ? data.user : null);
-                
-                if (response.ok && token) {
+                if (response.ok && data.token) {
                     // Save token and redirect
-                    localStorage.setItem('authToken', token);
+                    localStorage.setItem('authToken', data.token);
                     showAlert('loginAlert', 'Login successful! Redirecting...', 'success');
                     
                     // Redirect after a short delay to show the success message
                     setTimeout(() => {
-                        window.location.href = 'task.html';
+                        window.location.href = 'dashboard.html';
                     }, 1000);
                 } else {
-                    // Check for different response structures
-                    if (data.success === false) {
-                        showAlert('loginAlert', data.message || 'Login failed. Please check your credentials.', 'error');
-                    } else {
-                        showAlert('loginAlert', 'Invalid response from server. Please try again.', 'error');
-                    }
+                    showAlert('loginAlert', data.message || 'Login failed. Please check your credentials.', 'error');
                 }
             } catch (error) {
                 console.error('Login error:', error);
