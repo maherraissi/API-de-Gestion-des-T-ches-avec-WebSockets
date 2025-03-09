@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors'); // Add cors module
+const cors = require('cors');
 require('./config/db');
 
 const taskRouter = require('./routes/taskRoutes');
