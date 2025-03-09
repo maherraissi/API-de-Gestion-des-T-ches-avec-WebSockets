@@ -239,25 +239,28 @@
         }
 
         async function loadUsers() {
-            try {
-                const response = await fetch('http://localhost:3000/api/users', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
-                const users = await response.json();
-                const select = document.getElementById('assignedTo');
-                select.innerHTML = '<option value="">Select User</option>';
-                users.forEach(user => {
-                    const option = document.createElement('option');
-                    option.value = user._id;
-                    option.textContent = user.username;
-                    select.appendChild(option);
-                });
-            } catch (error) {
-                showMessage('Error loading users', 'error');
+    try {
+        const response = await fetch('http://localhost:3000/api/users', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
+        });
+        if (!response.ok) {
+            throw new Error('Failed to load users');
         }
+        const users = await response.json();
+        const select = document.getElementById('assignedTo');
+        select.innerHTML = '<option value="">Select User</option>';
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user._id;
+            option.textContent = user.username;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        showMessage('Error loading users: ' + error.message, 'error');
+    }
+}
 
         async function loadTasks() {
             try {
@@ -291,55 +294,63 @@
         }
 
         function updateTaskGrid(tasks) {
-            const grid = document.getElementById('taskGrid');
-            grid.innerHTML = '';
-            tasks.forEach(task => {
-                const card = document.createElement('div');
-                card.className = 'task-card';
-                card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
-                        <h3>${task.title}</h3>
-                        <span class="status-badge status-${task.status}">${task.status}</span>
-                    </div>
-                    <p>${task.description}</p>
-                    <p><strong>Assigned to:</strong> ${task.assignedTo?.username || 'Unassigned'}</p>
-                    <p><strong>Created:</strong> ${new Date(task.createdAt).toLocaleDateString()}</p>
-                    <div style="margin-top: 1rem;">
-                        <button onclick="deleteTask('${task._id}')" class="btn btn-danger">Delete</button>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        }
+    const grid = document.getElementById('taskGrid');
+    grid.innerHTML = '';
+    tasks.forEach(task => {
+        const card = document.createElement('div');
+        card.className = 'task-card';
+        const assignedToText = task.assignedTo && task.assignedTo.username 
+            ? task.assignedTo.username 
+            : (task.assignedTo 
+                ? 'User not found' 
+                : 'Unassigned');
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                <h3>${task.title}</h3>
+                <span class="status-badge status-${task.status}">${task.status}</span>
+            </div>
+            <p>${task.description}</p>
+            <p><strong>Assigned to:</strong> ${assignedToText}</p>
+            <p><strong>Created:</strong> ${new Date(task.createdAt).toLocaleDateString()}</p>
+            <div style="margin-top: 1rem;">
+                <button onclick="deleteTask('${task._id}')" class="btn btn-danger">Delete</button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
 
-        document.getElementById('taskForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const response = await fetch('http://localhost:3000/tasks/create', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify({
-                        title: document.getElementById('title').value,
-                        description: document.getElementById('description').value,
-                        assignedTo: document.getElementById('assignedTo').value || null,
-                        status: document.getElementById('status').value
-                    })
-                });
-
-                if (response.ok) {
-                    showMessage('Task created successfully', 'success');
-                    hideTaskModal();
-                    loadTasks();
-                } else {
-                    throw new Error('Failed to create task');
-                }
-            } catch (error) {
-                showMessage(error.message, 'error');
-            }
+        // Modifier la partie de création de tâche dans le gestionnaire d'événements submit
+document.getElementById('taskForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const assignedToValue = document.getElementById('assignedTo').value;
+    try {
+        const response = await fetch('http://localhost:3000/tasks/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                assignedTo: assignedToValue || undefined, // Changer null par undefined si vide
+                status: document.getElementById('status').value
+            })
         });
+
+        if (response.ok) {
+            const result = await response.json();
+            showMessage('Task created successfully', 'success');
+            hideTaskModal();
+            loadTasks();
+        } else {
+            throw new Error('Failed to create task');
+        }
+    } catch (error) {
+        showMessage(error.message, 'error');
+    }
+});
 
         async function deleteTask(taskId) {
             if (!confirm('Are you sure you want to delete this task?')) return;

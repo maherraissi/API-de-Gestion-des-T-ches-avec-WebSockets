@@ -3,7 +3,7 @@ const User = require('../models/userModel'); // Make sure to import the User mod
 
 // CREATE Task
 exports.createTask = async (req, res) => {
-    const { title, description, status } = req.body;
+    const { title, description, status, assignedTo } = req.body;
 
     // Ensure that all required fields are provided
     if (!title || !description) {
@@ -11,17 +11,30 @@ exports.createTask = async (req, res) => {
     }
 
     try {
+        // Check if assignedTo user exists when provided
+        if (assignedTo) {
+            const user = await User.findById(assignedTo);
+            if (!user) {
+                return res.status(400).json({ message: 'Assigned user not found' });
+            }
+        }
+
         const task = new Task({
-            title, 
-            description, 
-            status: status || 'pending' // Default status
+            title,
+            description,
+            assignedTo: assignedTo || null,
+            status: status || (assignedTo ? 'assigned' : 'pending')
         });
+
         await task.save();
+        
+        // Populate the assignedTo field before sending response
+        const populatedTask = await Task.findById(task._id).populate('assignedTo');
 
         // Emit an event to all connected clients
-        req.io.emit('taskCreated', task);
+        req.io.emit('taskCreated', populatedTask);
 
-        res.status(201).json({ message: 'Task created successfully', task });
+        res.status(201).json({ message: 'Task created successfully', task: populatedTask });
     } catch (error) {
         console.error('Error creating task:', error);
         res.status(400).json({ message: 'Error creating task', error });
