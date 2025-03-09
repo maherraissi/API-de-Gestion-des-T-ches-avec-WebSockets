@@ -5,8 +5,124 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Tasks</title>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        /* Add your styles here */
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5f5f5;
+            --success-color: #4CAF50;
+            --error-color: #f44336;
+            --warning-color: #ff9800;
+            --text-color: #333;
+            --card-color: #fff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+        }
+
+        .header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .task-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .task-card {
+            background-color: var(--card-color);
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .status-pending { background-color: var(--warning-color); color: white; }
+        .status-assigned { background-color: var(--primary-color); color: white; }
+        .status-accepted { background-color: #2196F3; color: white; }
+        .status-rejected { background-color: var(--error-color); color: white; }
+        .status-finished { background-color: var(--success-color); color: white; }
+
+        .notification {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .notification .badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background-color: var(--error-color);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 50%;
+            font-size: 0.8rem;
+        }
+
+        .notification-dropdown {
+            display: none;
+            position: absolute;
+            top: 30px;
+            right: 0;
+            background-color: var(--card-color);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .notification-dropdown.active {
+            display: block;
+        }
+
+        .notification-item {
+            padding: 1rem;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 0.5rem;
+        }
+
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-danger { background-color: var(--error-color); color: white; }
     </style>
 </head>
 <body>
@@ -14,6 +130,11 @@
         <h1>User Tasks</h1>
         <div>
             <span id="userName"></span>
+            <div class="notification" onclick="toggleNotificationDropdown()">
+                <i class="fas fa-bell"></i>
+                <span id="notificationBadge" class="badge" style="display: none;">0</span>
+                <div id="notificationDropdown" class="notification-dropdown"></div>
+            </div>
             <button onclick="logout()" class="btn btn-danger">Logout</button>
         </div>
     </header>
@@ -149,6 +270,73 @@
             window.location.href = 'login.html';
         }
 
+        function toggleNotificationDropdown() {
+            const dropdown = document.getElementById('notificationDropdown');
+            dropdown.classList.toggle('active');
+        }
+
+        function addNotification(task) {
+            const dropdown = document.getElementById('notificationDropdown');
+            const item = document.createElement('div');
+            item.className = 'notification-item';
+            item.innerHTML = `
+                <strong>Task by ${task.createdBy.username}:</strong>
+                <p>${task.title}</p>
+                <p>${task.description}</p>
+                <button onclick="acceptTaskFromNotification('${task._id}')" class="btn btn-success">Accept</button>
+            `;
+            dropdown.appendChild(item);
+
+            const badge = document.getElementById('notificationBadge');
+            const count = dropdown.children.length;
+            badge.textContent = count;
+            badge.style.display = count > 0 ? 'block' : 'none';
+        }
+
+        async function acceptTaskFromNotification(taskId) {
+            try {
+                const response = await fetch('http://localhost:3000/tasks/accept', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ taskId })
+                });
+
+                if (response.ok) {
+                    showMessage('Task accepted successfully', 'success');
+                    loadUserTasks();
+                    removeNotification(taskId);
+                } else {
+                    throw new Error('Failed to accept task');
+                }
+            } catch (error) {
+                showMessage(error.message, 'error');
+            }
+        }
+
+        function removeNotification(taskId) {
+            const dropdown = document.getElementById('notificationDropdown');
+            const items = dropdown.getElementsByClassName('notification-item');
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].innerHTML.includes(taskId)) {
+                    dropdown.removeChild(items[i]);
+                    break;
+                }
+            }
+
+            const badge = document.getElementById('notificationBadge');
+            const count = dropdown.children.length;
+            badge.textContent = count;
+            badge.style.display = count > 0 ? 'block' : 'none';
+        }
+
+        function playNotificationSound() {
+            const audio = new Audio('notification.mp3');
+            audio.play();
+        }
+
         // Initialize
         if (!localStorage.getItem('token')) {
             window.location.href = 'login.html';
@@ -157,7 +345,11 @@
         }
 
         // WebSocket event listeners
-        socket.on('taskCreated', () => loadUserTasks());
+        socket.on('taskCreated', (task) => {
+            addNotification(task);
+            playNotificationSound();
+            loadUserTasks();
+        });
         socket.on('taskUpdated', () => loadUserTasks());
         socket.on('taskDeleted', () => loadUserTasks());
     </script>
