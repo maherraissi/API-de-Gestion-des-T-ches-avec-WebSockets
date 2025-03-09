@@ -14,6 +14,7 @@ router.put('/finish', authenticate, taskController.finishTask);
 
 // Create a new task (Admin only)
 router.post('/create', authenticate, authorize(['admin']), taskController.createTask);
+
 // for user tasks
 router.get('/user-tasks', authenticate, taskController.getUserTasks); 
 

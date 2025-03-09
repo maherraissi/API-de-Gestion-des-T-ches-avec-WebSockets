@@ -11,19 +11,34 @@ exports.createTask = async (req, res) => {
     }
 
     try {
+<<<<<<< HEAD
         // Check if assignedTo user exists when provided
         if (assignedTo) {
             const user = await User.findById(assignedTo);
             if (!user) {
                 return res.status(400).json({ message: 'Assigned user not found' });
+=======
+        let user = null;
+        if (assignedTo) {
+            user = await User.findById(assignedTo);
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+>>>>>>> jilani
             }
         }
 
         const task = new Task({
+<<<<<<< HEAD
             title,
             description,
             assignedTo: assignedTo || null,
             status: status || (assignedTo ? 'assigned' : 'pending')
+=======
+            title, 
+            description, 
+            status: status || 'pending', // Default status
+            assignedTo: user ? user._id : null // Assign user ID if user is found
+>>>>>>> jilani
         });
 
         await task.save();
@@ -75,7 +90,6 @@ exports.getUserTasks = async (req, res) => {
         res.status(500).json({ message: 'Error retrieving tasks', error });
     }
 };
-
 
 // READ single task by ID
 exports.getTaskById = async (req, res) => {

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Tasks</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        /* Add your styles here */
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>User Tasks</h1>
+        <div>
+            <span id="userName"></span>
+            <button onclick="logout()" class="btn btn-danger">Logout</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="taskGrid" class="task-grid"></div>
+    </div>
+
+    <script>
+        const socket = io('http://localhost:3000', {
+            auth: { token: localStorage.getItem('token') }
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('Socket connection error:', error);
+            showMessage('Connection error', 'error');
+        });
+
+        function showMessage(message, type) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${type}`;
+            msgDiv.textContent = message;
+            document.body.appendChild(msgDiv);
+            setTimeout(() => msgDiv.remove(), 3000);
+        }
+
+        async function loadUserTasks() {
+            try {
+                const response = await fetch('http://localhost:3000/tasks/user-tasks', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                const data = await response.json();
+                updateTaskGrid(data.tasks);
+            } catch (error) {
+                showMessage('Error loading tasks', 'error');
+            }
+        }
+
+        function updateTaskGrid(tasks) {
+            const grid = document.getElementById('taskGrid');
+            grid.innerHTML = '';
+            tasks.forEach(task => {
+                const card = document.createElement('div');
+                card.className = 'task-card';
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                        <h3>${task.title}</h3>
+                        <span class="status-badge status-${task.status}">${task.status}</span>
+                    </div>
+                    <p>${task.description}</p>
+                    <p><strong>Assigned to:</strong> ${task.assignedTo?.username || 'Unassigned'}</p>
+                    <p><strong>Created:</strong> ${new Date(task.createdAt).toLocaleDateString()}</p>
+                    <div style="margin-top: 1rem;">
+                        <button onclick="acceptTask('${task._id}')" class="btn btn-success">Accept</button>
+                        <button onclick="rejectTask('${task._id}')" class="btn btn-danger">Reject</button>
+                        <button onclick="finishTask('${task._id}')" class="btn btn-primary">Finish</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function acceptTask(taskId) {
+            try {
+                const response = await fetch('http://localhost:3000/tasks/accept', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ taskId })
+                });
+
+                if (response.ok) {
+                    showMessage('Task accepted successfully', 'success');
+                    loadUserTasks();
+                } else {
+                    throw new Error('Failed to accept task');
+                }
+            } catch (error) {
+                showMessage(error.message, 'error');
+            }
+        }
+
+        async function rejectTask(taskId) {
+            try {
+                const response = await fetch('http://localhost:3000/tasks/reject', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ taskId })
+                });
+
+                if (response.ok) {
+                    showMessage('Task rejected successfully', 'success');
+                    loadUserTasks();
+                } else {
+                    throw new Error('Failed to reject task');
+                }
+            } catch (error) {
+                showMessage(error.message, 'error');
+            }
+        }
+
+        async function finishTask(taskId) {
+            try {
+                const response = await fetch('http://localhost:3000/tasks/finish', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ taskId })
+                });
+
+                if (response.ok) {
+                    showMessage('Task finished successfully', 'success');
+                    loadUserTasks();
+                } else {
+                    throw new Error('Failed to finish task');
+                }
+            } catch (error) {
+                showMessage(error.message, 'error');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        }
+
+        // Initialize
+        if (!localStorage.getItem('token')) {
+            window.location.href = 'login.html';
+        } else {
+            loadUserTasks();
+        }
+
+        // WebSocket event listeners
+        socket.on('taskCreated', () => loadUserTasks());
+        socket.on('taskUpdated', () => loadUserTasks());
+        socket.on('taskDeleted', () => loadUserTasks());
+    </script>
+</body>
+</html>

@@ -142,35 +142,41 @@
         }
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        e.preventDefault();
 
-            try {
-                const response = await fetch('http://localhost:3000/api/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: document.getElementById('email').value,
-                        password: document.getElementById('password').value
-                    })
-                });
+        try {
+            const response = await fetch('http://localhost:3000/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: document.getElementById('email').value,
+                    password: document.getElementById('password').value
+                })
+            });
 
-                const data = await response.json();
+            const data = await response.json();
 
-                if (response.ok) {
-                    showMessage('Login successful!', 'success');
-                    localStorage.setItem('token', data.user.token);
-                    setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 1500);
-                } else {
-                    throw new Error(data.message || 'Login failed');
-                }
-            } catch (error) {
-                showMessage(error.message, 'error');
+            if (response.ok) {
+                showMessage('Login successful!', 'success');
+                localStorage.setItem('token', data.user.token);
+                localStorage.setItem('role', data.user.role);
+                setTimeout(() => {
+                    if (data.user.role === 'admin') {
+                        window.location.href = 'index.html'; // Admin page
+                    } else {
+                        window.location.href = 'user-task.html'; // User page
+                    }
+                }, 1500);
+            } else {
+                throw new Error(data.message || 'Login failed');
             }
-        });
+        } catch (error) {
+            showMessage(error.message, 'error');
+        }
+    });
+
     </script>
 </body>
 </html>
