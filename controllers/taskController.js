@@ -3,7 +3,7 @@ const User = require('../models/userModel'); // Make sure to import the User mod
 
 // CREATE Task
 exports.createTask = async (req, res) => {
-    const { title, description, status } = req.body;
+    const { title, description, status, assignedTo } = req.body;
 
     // Ensure that all required fields are provided
     if (!title || !description) {
@@ -11,10 +11,19 @@ exports.createTask = async (req, res) => {
     }
 
     try {
+        let user = null;
+        if (assignedTo) {
+            user = await User.findById(assignedTo);
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+        }
+
         const task = new Task({
             title, 
             description, 
-            status: status || 'pending' // Default status
+            status: status || 'pending', // Default status
+            assignedTo: user ? user._id : null // Assign user ID if user is found
         });
         await task.save();
 
@@ -62,7 +71,6 @@ exports.getUserTasks = async (req, res) => {
         res.status(500).json({ message: 'Error retrieving tasks', error });
     }
 };
-
 
 // READ single task by ID
 exports.getTaskById = async (req, res) => {

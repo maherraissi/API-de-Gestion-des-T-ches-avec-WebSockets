@@ -1,7 +1,6 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const cors = require('cors'); // Add cors module
 const cors = require('cors');
 require('./config/db');
 
@@ -18,14 +17,7 @@ const io = socketIo(server, {
 });
 
 const PORT = process.env.PORT || 3000;
-
-// Enable CORS for all requests
-app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
+app.use(cors());
 app.use(express.json());
 
 // Attach io to the request object (so it can be used in controllers)
@@ -36,12 +28,15 @@ app.use((req, res, next) => {
 
 app.use('/tasks', taskRouter);
 
+
 // Base Route
 app.get('/', (req, res) => {
     res.send('Welcome to the Task Management API');
 });
 
 app.use('/api', router);
+
+//app.use('/api', router);
 
 // WebSocket Connection
 io.on('connection', (socket) => {
