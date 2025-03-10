@@ -321,19 +321,24 @@
 
         async function checkUserRole() {
             try {
-                const response = await fetch('http://localhost:3000/api/users/me', {
+                const response = await fetch('http://localhost:3000/api/users/profile', {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
                 if (!response.ok) {
-                    throw new Error('Failed to fetch user role');
+                    if (response.status === 401) {
+                        localStorage.removeItem('token');
+                        window.location.href = 'login.html';
+                        return null;
+                    }
+                    throw new Error('Failed to fetch user profile');
                 }
                 const data = await response.json();
                 userRole = data.role;
-                console.log('User role:', userRole);
+                document.getElementById('userName').textContent = `Welcome, ${data.username}`;
                 
-                // Cacher/Montrer le bouton de création selon le rôle
+                // Show/hide create button based on role
                 const createButton = document.querySelector('button[onclick="showTaskModal()"]');
                 if (createButton) {
                     createButton.style.display = userRole === 'admin' ? 'block' : 'none';
@@ -342,6 +347,7 @@
                 return userRole;
             } catch (error) {
                 console.error('Error checking user role:', error);
+                showMessage('Error loading user profile', 'error');
                 return null;
             }
         }
